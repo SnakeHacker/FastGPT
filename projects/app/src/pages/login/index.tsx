@@ -78,8 +78,13 @@ const Login = () => {
       <Flex
         alignItems={'center'}
         justifyContent={'center'}
-        bg={`url('/icon/login-bg.svg') no-repeat`}
-        backgroundSize={'cover'}
+        // bg={`url('/icon/login-bg.svg') no-repeat`}
+        // backgroundSize={'cover'}
+        bgGradient={[
+          'linear(to-tr, white, #a6defa)',
+          'linear(to-t, #5bc9f8, #35bef7)',
+          'linear(to-b, #80d4f9, white)'
+        ]}
         userSelect={'none'}
         h={'100%'}
         px={[0, '10vw']}
@@ -107,7 +112,7 @@ const Login = () => {
               </Center>
             )}
           </Box>
-          {feConfigs?.concatMd && (
+          {/* {feConfigs?.concatMd && (
             <Box
               mt={8}
               color={'primary.700'}
@@ -117,7 +122,7 @@ const Login = () => {
             >
               无法登录，点击联系
             </Box>
-          )}
+          )} */}
         </Flex>
 
         {isOpen && <CommunityModal onClose={onClose} />}

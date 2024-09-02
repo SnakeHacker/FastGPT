@@ -39,6 +39,7 @@ export type FastGPTFeConfigsType = {
   systemPluginCourseUrl?: string;
 
   systemTitle?: string;
+  systemSubTitle?: string;
   systemDescription?: string;
   googleClientVerKey?: string;
   isPlus?: boolean;

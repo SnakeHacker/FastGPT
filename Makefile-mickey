@@ -1,0 +1,31 @@
+.PHONY: install\
+build_image
+
+IMAGE_NAME = cmsrllm
+IMAGE_VERSION = 4.8.0-20240730
+IMAGE_TAG = mickeyzhoudocker/${IMAGE_NAME}:${IMAGE_VERSION}
+
+filePath=./projects/app/Dockerfile
+
+install: 
+	pnpm i
+
+build_image:
+	docker build  -f $(filePath) -t ${IMAGE_TAG} --platform linux/amd64 --build-arg name=app --build-arg proxy=taobao .
+
+save_image:
+	docker save -o ${IMAGE_NAME}-${IMAGE_VERSION}.tar ${IMAGE_TAG}
+
+pull_ohters:
+	docker pull --platform linux/amd64 registry.cn-hangzhou.aliyuncs.com/fastgpt/pgvector:v0.7.0
+	docker pull --platform linux/amd64 mongo:4.4.24
+	docker pull --platform linux/amd64 mysql:8.0.36
+	docker pull --platform linux/amd64 registry.cn-hangzhou.aliyuncs.com/fastgpt/one-api:v0.6.6
+	docker pull --platform linux/amd64 stawky/m3e-large-api:latest
+
+save_others:
+	docker save -o pgvector.tar registry.cn-hangzhou.aliyuncs.com/fastgpt/pgvector:v0.7.0
+	docker save -o mongo.tar mongo:4.4.24
+	docker save -o mysql.tar mysql:8.0.36
+	docker save -o oneapi.tar registry.cn-hangzhou.aliyuncs.com/fastgpt/one-api:v0.6.6
+	docker save -o m3e.tar stawky/m3e-large-api:latest

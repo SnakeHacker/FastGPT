@@ -2,8 +2,8 @@ import type { LLMModelItemType, VectorModelItemType } from './model.d';
 
 export const defaultQAModels: LLMModelItemType[] = [
   {
-    model: 'gpt-4o-mini',
-    name: 'gpt-4o-mini',
+    model: 'glm-4-0520',
+    name: 'glm-4-0520',
     maxContext: 16000,
     maxResponse: 16000,
     quoteMaxToken: 13000,
@@ -23,8 +23,8 @@ export const defaultQAModels: LLMModelItemType[] = [
 
 export const defaultVectorModels: VectorModelItemType[] = [
   {
-    model: 'text-embedding-3-small',
-    name: 'Embedding-2',
+    model: 'm3e',
+    name: 'm3e',
     charsPointsPrice: 0,
     defaultToken: 500,
     maxToken: 3000,
