@@ -34,6 +34,7 @@ const Button = defineStyleConfig({
       transform: 'scale(0.98)'
     },
     _disabled: {
+      transform: 'none !important',
       _hover: {
         filter: 'none'
       }
@@ -476,6 +477,7 @@ const Checkbox = checkBoxMultiStyle({
       _checked: {
         bg: 'primary.50',
         borderColor: 'primary.600',
+        borderWidth: '1px',
         color: 'primary.600',
         boxShadow: `${shadowLight} !important`,
         _hover: {
@@ -677,6 +679,19 @@ export const theme = extendTheme({
       700: '#B54708',
       800: '#93370D',
       900: '#7A2E0E'
+    },
+    adora: {
+      25: '#FCFCFF',
+      50: '#F0EEFF',
+      100: '#E4E1FC',
+      200: '#D3CAFF',
+      300: '#B6A8FC',
+      400: '#9E8DFB',
+      500: '#8774EE',
+      600: '#6F5DD7',
+      700: '#5E4EBD',
+      800: '#4E4198',
+      900: '#42387D'
     },
     borderColor: {
       low: '#E8EBF0',

@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Box, Flex, BoxProps, useDisclosure } from '@chakra-ui/react';
+import { Box, Flex, BoxProps, useDisclosure, HStack } from '@chakra-ui/react';
 import type { ChatHistoryItemResType } from '@fastgpt/global/core/chat/type.d';
 import { useTranslation } from 'next-i18next';
 import { moduleTemplatesFlat } from '@fastgpt/global/core/workflow/template/constants';
@@ -13,13 +13,19 @@ import QuestionTip from '@fastgpt/web/components/common/MyTooltip/QuestionTip';
 import Avatar from '@fastgpt/web/components/common/Avatar';
 import { useSystem } from '@fastgpt/web/hooks/useSystem';
 import MyIcon from '@fastgpt/web/components/common/Icon';
+import { useContextSelector } from 'use-context-selector';
+import { ChatBoxContext } from '../ChatContainer/ChatBox/Provider';
+import { useRequest2 } from '@fastgpt/web/hooks/useRequest';
+import { getFileIcon } from '@fastgpt/global/common/file/icon';
+import EmptyTip from '@fastgpt/web/components/common/EmptyTip';
 
 type sideTabItemType = {
   moduleLogo?: string;
   moduleName: string;
   runningTime?: number;
   moduleType: string;
-  nodeId: string;
+  // nodeId:string; // abandon
+  id: string;
   children: sideTabItemType[];
 };
 
@@ -31,7 +37,7 @@ function RowRender({
 }: { children: React.ReactNode; label: string } & BoxProps) {
   return (
     <Box mb={3}>
-      <Box fontSize={'sm'} mb={mb} flex={'0 0 90px'}>
+      <Box fontSize={'sm'} mb={mb} color={'myGray.800'} flex={'0 0 90px'}>
         {label}:
       </Box>
       <Box borderRadius={'sm'} fontSize={['xs', 'sm']} bg={'myGray.50'} {...props}>
@@ -85,15 +91,23 @@ function Row({
 }
 
 const WholeResponseModal = ({
-  response,
   showDetail,
-  onClose
+  onClose,
+  dataId
 }: {
-  response: ChatHistoryItemResType[];
   showDetail: boolean;
   onClose: () => void;
+  dataId: string;
 }) => {
   const { t } = useTranslation();
+
+  const { getHistoryResponseData } = useContextSelector(ChatBoxContext, (v) => v);
+  const { loading: isLoading, data: response } = useRequest2(
+    () => getHistoryResponseData({ dataId }),
+    {
+      manual: false
+    }
+  );
 
   return (
     <MyModal
@@ -101,17 +115,22 @@ const WholeResponseModal = ({
       isOpen={true}
       onClose={onClose}
       h={['90vh', '80vh']}
+      isLoading={isLoading}
       maxH={['90vh', '700px']}
       minW={['90vw', '880px']}
       iconSrc="/imgs/modal/wholeRecord.svg"
       title={
         <Flex alignItems={'center'}>
           {t('common:core.chat.response.Complete Response')}
-          <QuestionTip ml={2} label={'从左往右，为各个模块的响应顺序'}></QuestionTip>
+          <QuestionTip ml={2} label={t('chat:question_tip')}></QuestionTip>
         </Flex>
       }
     >
-      <ResponseBox response={response} showDetail={showDetail} />
+      {!!response?.length ? (
+        <ResponseBox response={response} showDetail={showDetail} />
+      ) : (
+        <EmptyTip text={t('chat:no_workflow_response')} />
+      )}
     </MyModal>
   );
 };
@@ -131,17 +150,28 @@ export const ResponseBox = React.memo(function ResponseBox({
 }) {
   const { t } = useTranslation();
   const { isPc } = useSystem();
-  const flattedResponse = useMemo(() => flattenArray(response), [response]);
-  const [currentNodeId, setCurrentNodeId] = useState(
-    flattedResponse[0]?.nodeId ? flattedResponse[0].nodeId : ''
+
+  const flattedResponse = useMemo(
+    () =>
+      flattenArray(response).map((item) => ({
+        ...item,
+        id: item.id ?? item.nodeId
+      })),
+    [response]
   );
+  const [currentNodeId, setCurrentNodeId] = useState(
+    flattedResponse[0]?.id ?? flattedResponse[0]?.nodeId ?? ''
+  );
+
   const activeModule = useMemo(
-    () => flattedResponse.find((item) => item.nodeId === currentNodeId) as ChatHistoryItemResType,
+    () => flattedResponse.find((item) => item.id === currentNodeId) as ChatHistoryItemResType,
     [currentNodeId, flattedResponse]
   );
-  const sideResponse: sideTabItemType[] = useMemo(() => {
+
+  const sliderResponseList: sideTabItemType[] = useMemo(() => {
     return pretreatmentResponse(response);
   }, [response]);
+
   const {
     isOpen: isOpenMobileModal,
     onOpen: onOpenMobileModal,
@@ -155,7 +185,7 @@ export const ResponseBox = React.memo(function ResponseBox({
           <Box flex={'2 0 0'} borderRight={'sm'} p={3}>
             <Box overflow={'auto'} height={'100%'}>
               <WholeResponseSideTab
-                response={sideResponse}
+                response={sliderResponseList}
                 value={currentNodeId}
                 onChange={setCurrentNodeId}
               />
@@ -170,81 +200,77 @@ export const ResponseBox = React.memo(function ResponseBox({
           </Box>
         </Flex>
       ) : (
-        <>
-          <Box position={'relative'} overflow={isOpenMobileModal ? 'hidden' : ''}>
-            {!isOpenMobileModal && (
-              <Box height={'100%'}>
-                <WholeResponseSideTab
-                  response={sideResponse}
-                  value={currentNodeId}
-                  onChange={(item: string) => {
-                    setCurrentNodeId(item);
-                    onOpenMobileModal();
+        <Box h={'100%'} overflow={'auto'}>
+          {!isOpenMobileModal && (
+            <WholeResponseSideTab
+              response={sliderResponseList}
+              value={currentNodeId}
+              onChange={(item: string) => {
+                setCurrentNodeId(item);
+                onOpenMobileModal();
+              }}
+              isMobile={true}
+            />
+          )}
+          {isOpenMobileModal && (
+            <Flex flexDirection={'column'} h={'100%'}>
+              <Flex
+                align={'center'}
+                justifyContent={'center'}
+                px={2}
+                py={2}
+                borderBottom={'sm'}
+                position={'relative'}
+                height={'40px'}
+              >
+                <MyIcon
+                  width={4}
+                  height={4}
+                  name="common/backLight"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onCloseMobileModal();
                   }}
-                  isMobile={true}
+                  position={'absolute'}
+                  left={2}
+                  top={'50%'}
+                  transform={'translateY(-50%)'}
+                  cursor={'pointer'}
+                  _hover={{ color: 'primary.500' }}
+                />
+
+                <Avatar
+                  src={
+                    activeModule.moduleLogo ||
+                    moduleTemplatesFlat.find(
+                      (template) => activeModule.moduleType === template.flowNodeType
+                    )?.avatar
+                  }
+                  w={'1.25rem'}
+                  h={'1.25rem'}
+                  borderRadius={'sm'}
+                />
+
+                <Box ml={1.5} lineHeight={'1.25rem'} alignItems={'center'}>
+                  {t(activeModule.moduleName as any)}
+                </Box>
+              </Flex>
+              <Box flex={'1 0 0'} overflow={'auto'}>
+                <WholeResponseContent
+                  activeModule={activeModule}
+                  hideTabs={hideTabs}
+                  showDetail={showDetail}
                 />
               </Box>
-            )}
-            {isOpenMobileModal && (
-              <Box h={'100%'} w={'100%'} zIndex={10} background={'white'}>
-                <Flex
-                  align={'center'}
-                  justifyContent={'center'}
-                  px={2}
-                  py={2}
-                  borderBottom={'sm'}
-                  position={'relative'}
-                  height={'40px'}
-                >
-                  <MyIcon
-                    width={4}
-                    height={4}
-                    name="common/backLight"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onCloseMobileModal();
-                    }}
-                    position={'absolute'}
-                    left={2}
-                    top={'50%'}
-                    transform={'translateY(-50%)'}
-                    cursor={'pointer'}
-                    _hover={{ color: 'primary.500' }}
-                  />
-
-                  <Avatar
-                    src={
-                      activeModule.moduleLogo ||
-                      moduleTemplatesFlat.find(
-                        (template) => activeModule.moduleType === template.flowNodeType
-                      )?.avatar
-                    }
-                    w={'1.25rem'}
-                    h={'1.25rem'}
-                    borderRadius={'sm'}
-                  />
-
-                  <Box ml={1.5} lineHeight={'1.25rem'} alignItems={'center'}>
-                    {t(activeModule.moduleName as any)}
-                  </Box>
-                </Flex>
-                <Box overflow={'auto'} height={'calc(100% - 40px)'}>
-                  <WholeResponseContent
-                    activeModule={activeModule}
-                    hideTabs={hideTabs}
-                    showDetail={showDetail}
-                  />
-                </Box>
-              </Box>
-            )}
-          </Box>
-        </>
+            </Flex>
+          )}
+        </Box>
       )}
     </>
   );
 });
 
-const WholeResponseContent = ({
+export const WholeResponseContent = ({
   activeModule,
   hideTabs,
   showDetail
@@ -300,7 +326,8 @@ const WholeResponseContent = ({
               label={t('common:core.chat.response.context total length')}
               value={activeModule?.contextTotalLen}
             />
-            <Row label={workflowT('response.Error')} value={activeModule?.error} />
+            <Row label={t('workflow:response.Error')} value={activeModule?.error} />
+            <Row label={t('chat:response.node_inputs')} value={activeModule?.nodeInputs} />
           </>
           {/* ai chat */}
           <>
@@ -426,9 +453,62 @@ const WholeResponseContent = ({
             value={activeModule?.textOutput}
           />
           {/* code */}
-          <Row label={workflowT('response.Custom outputs')} value={activeModule?.customOutputs} />
-          <Row label={workflowT('response.Custom inputs')} value={activeModule?.customInputs} />
-          <Row label={workflowT('response.Code log')} value={activeModule?.codeLog} />
+          <>
+            <Row label={t('workflow:response.Custom inputs')} value={activeModule?.customInputs} />
+            <Row
+              label={t('workflow:response.Custom outputs')}
+              value={activeModule?.customOutputs}
+            />
+            <Row label={t('workflow:response.Code log')} value={activeModule?.codeLog} />
+          </>
+
+          {/* read files */}
+          <>
+            {activeModule?.readFiles && activeModule?.readFiles.length > 0 && (
+              <Row
+                label={t('workflow:response.read files')}
+                rawDom={
+                  <Flex flexWrap={'wrap'} gap={3} px={4} py={2}>
+                    {activeModule?.readFiles.map((file, i) => (
+                      <HStack
+                        key={i}
+                        bg={'white'}
+                        boxShadow={'base'}
+                        borderRadius={'sm'}
+                        py={1}
+                        px={2}
+                        {...(file.url
+                          ? {
+                              cursor: 'pointer',
+                              onClick: () => window.open(file.url)
+                            }
+                          : {})}
+                      >
+                        <MyIcon name={getFileIcon(file.name) as any} w={'1rem'} />
+                        <Box>{file.name}</Box>
+                      </HStack>
+                    ))}
+                  </Flex>
+                }
+              />
+            )}
+            <Row
+              label={t('workflow:response.Read file result')}
+              value={activeModule?.readFilesResult}
+            />
+          </>
+
+          {/* user select */}
+          <Row
+            label={t('common:core.chat.response.user_select_result')}
+            value={activeModule?.userSelectResult}
+          />
+
+          {/* update var */}
+          <Row
+            label={t('common:core.chat.response.update_var_result')}
+            value={activeModule?.updateVarResult}
+          />
         </Box>
       )}
     </>
@@ -450,7 +530,7 @@ const WholeResponseSideTab = ({
     <>
       {response.map((item) => (
         <Box
-          key={item.nodeId}
+          key={item.id}
           bg={isMobile ? 'myGray.100' : ''}
           m={isMobile ? 3 : 0}
           borderRadius={'md'}
@@ -470,7 +550,7 @@ const AccordionSideTabItem = ({
   index
 }: {
   sideBarItem: sideTabItemType;
-  onChange: (nodeId: string) => void;
+  onChange: (id: string) => void;
   value: string;
   index: number;
 }) => {
@@ -503,7 +583,7 @@ const AccordionSideTabItem = ({
           {sideBarItem.children.map((item) => (
             <SideTabItem
               value={value}
-              key={item.nodeId}
+              key={item.id}
               sideBarItem={item}
               onChange={onChange}
               index={index + 1}
@@ -523,7 +603,7 @@ const NormalSideTabItem = ({
   children
 }: {
   sideBarItem: sideTabItemType;
-  onChange: (nodeId: string) => void;
+  onChange: (id: string) => void;
   value: string;
   index: number;
   children?: React.ReactNode;
@@ -534,9 +614,9 @@ const NormalSideTabItem = ({
     <Flex
       alignItems={'center'}
       onClick={() => {
-        onChange(sideBarItem.nodeId);
+        onChange(sideBarItem.id);
       }}
-      background={value === sideBarItem.nodeId ? 'myGray.100' : ''}
+      background={value === sideBarItem.id ? 'myGray.100' : ''}
       _hover={{ background: 'myGray.100' }}
       p={2}
       width={'100%'}
@@ -585,7 +665,7 @@ const SideTabItem = ({
   index
 }: {
   sideBarItem: sideTabItemType;
-  onChange: (nodeId: string) => void;
+  onChange: (id: string) => void;
   value: string;
   index: number;
 }) => {
@@ -606,6 +686,7 @@ const SideTabItem = ({
   );
 };
 
+/* Format response data to slider data */
 function pretreatmentResponse(res: ChatHistoryItemResType[]): sideTabItemType[] {
   return res.map((item) => {
     let children: sideTabItemType[] = [];
@@ -619,12 +700,13 @@ function pretreatmentResponse(res: ChatHistoryItemResType[]): sideTabItemType[] 
       moduleName: item.moduleName,
       runningTime: item.runningTime,
       moduleType: item.moduleType,
-      nodeId: item.nodeId,
+      id: item.id ?? item.nodeId,
       children
     };
   });
 }
 
+/* Flat response */
 function flattenArray(arr: ChatHistoryItemResType[]) {
   const result: ChatHistoryItemResType[] = [];
 

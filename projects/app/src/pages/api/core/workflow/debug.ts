@@ -39,8 +39,9 @@ async function handler(
   const { user } = await getUserChatInfoAndAuthTeamPoints(tmbId);
 
   /* start process */
-  const { flowUsages, flowResponses, debugResponse } = await dispatchWorkFlow({
+  const { flowUsages, flowResponses, debugResponse, newVariables } = await dispatchWorkFlow({
     res,
+    requestOrigin: req.headers.origin,
     mode: 'debug',
     teamId,
     tmbId,
@@ -50,9 +51,9 @@ async function handler(
     runtimeEdges: edges,
     variables,
     query: [],
+    chatConfig: defaultApp.chatConfig,
     histories: [],
     stream: false,
-    detail: true,
     maxRunTimes: 200
   });
 
@@ -67,6 +68,7 @@ async function handler(
 
   return {
     ...debugResponse,
+    newVariables,
     flowResponses
   };
 }

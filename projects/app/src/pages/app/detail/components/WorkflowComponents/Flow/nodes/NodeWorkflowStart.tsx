@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import { NodeProps } from 'reactflow';
 import NodeCard from './render/NodeCard';
 import { FlowNodeItemType } from '@fastgpt/global/core/workflow/type/node.d';
@@ -11,7 +11,10 @@ import { WorkflowContext } from '../../context';
 import { useCreation } from 'ahooks';
 import { getWorkflowGlobalVariables } from '@/web/core/workflow/utils';
 import { FlowNodeOutputItemType } from '@fastgpt/global/core/workflow/type/io';
-import { FlowNodeOutputTypeEnum } from '@fastgpt/global/core/workflow/node/constant';
+import {
+  chatHistoryValueDesc,
+  FlowNodeOutputTypeEnum
+} from '@fastgpt/global/core/workflow/node/constant';
 import { WorkflowIOValueTypeEnum } from '@fastgpt/global/core/workflow/constants';
 import { AppContext } from '@/pages/app/detail/components/context';
 
@@ -28,15 +31,28 @@ const NodeStart = ({ data, selected }: NodeProps<FlowNodeItemType>) => {
       t
     });
 
-    return variables.map<FlowNodeOutputItemType>((item) => ({
-      id: item.key,
-      type: FlowNodeOutputTypeEnum.static,
-      key: item.key,
-      required: item.required,
-      valueType: item.valueType || WorkflowIOValueTypeEnum.any,
-      label: item.label
-    }));
-  }, [nodeList, t]);
+    return variables.map<FlowNodeOutputItemType>((item) => {
+      if (item.valueType === WorkflowIOValueTypeEnum.chatHistory) {
+        return {
+          id: item.key,
+          type: FlowNodeOutputTypeEnum.static,
+          key: item.key,
+          required: item.required,
+          valueType: item.valueType,
+          valueDesc: chatHistoryValueDesc,
+          label: item.label
+        };
+      }
+      return {
+        id: item.key,
+        type: FlowNodeOutputTypeEnum.static,
+        key: item.key,
+        required: item.required,
+        valueType: item.valueType || WorkflowIOValueTypeEnum.any,
+        label: item.label
+      };
+    });
+  }, [nodeList, appDetail.chatConfig, t]);
 
   return (
     <NodeCard

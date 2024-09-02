@@ -375,15 +375,21 @@ const ConditionSelect = ({
     return [];
   }, [valueType]);
   const filterQuiredConditionList = useMemo(() => {
-    if (required) {
-      return conditionList.filter(
-        (item) =>
-          item.value !== VariableConditionEnum.isEmpty &&
-          item.value !== VariableConditionEnum.isNotEmpty
-      );
-    }
-    return conditionList;
-  }, [conditionList, required]);
+    const list = (() => {
+      if (required) {
+        return conditionList.filter(
+          (item) =>
+            item.value !== VariableConditionEnum.isEmpty &&
+            item.value !== VariableConditionEnum.isNotEmpty
+        );
+      }
+      return conditionList;
+    })();
+    return list.map((item) => ({
+      ...item,
+      label: t(item.label)
+    }));
+  }, [conditionList, required, t]);
 
   return (
     <MySelect
@@ -392,7 +398,7 @@ const ConditionSelect = ({
       list={filterQuiredConditionList}
       value={condition}
       onchange={onSelect}
-      placeholder="选择条件"
+      placeholder={t('common:chose_condition')}
     />
   );
 };

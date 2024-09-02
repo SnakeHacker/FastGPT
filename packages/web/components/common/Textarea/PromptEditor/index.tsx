@@ -1,4 +1,4 @@
-import { Button, ModalBody, ModalFooter, useDisclosure } from '@chakra-ui/react';
+import { Box, Button, ModalBody, ModalFooter, useDisclosure } from '@chakra-ui/react';
 import React from 'react';
 import { editorStateToText } from './utils';
 import Editor from './Editor';
@@ -6,7 +6,7 @@ import MyModal from '../../MyModal';
 import { useTranslation } from 'next-i18next';
 import { EditorState, type LexicalEditor } from 'lexical';
 import { EditorVariableLabelPickerType, EditorVariablePickerType } from './type.d';
-import { useCallback, useTransition } from 'react';
+import { useCallback } from 'react';
 
 const PromptEditor = ({
   showOpenModal = true,
@@ -20,7 +20,8 @@ const PromptEditor = ({
   maxLength,
   placeholder,
   title,
-  isFlow
+  isFlow,
+  bg = 'white'
 }: {
   showOpenModal?: boolean;
   showResize?: boolean;
@@ -34,21 +35,25 @@ const PromptEditor = ({
   placeholder?: string;
   title?: string;
   isFlow?: boolean;
+  bg?: string;
 }) => {
   const { isOpen, onOpen, onClose } = useDisclosure();
-  const [, startSts] = useTransition();
   const { t } = useTranslation();
 
-  const onChangeInput = useCallback((editorState: EditorState, editor: LexicalEditor) => {
-    const text = editorStateToText(editor).replaceAll('}}{{', '}} {{');
-    onChange?.(text);
-  }, []);
-  const onBlurInput = useCallback((editor: LexicalEditor) => {
-    startSts(() => {
+  const onChangeInput = useCallback(
+    (editorState: EditorState, editor: LexicalEditor) => {
+      const text = editorStateToText(editor).replaceAll('}}{{', '}} {{');
+      onChange?.(text);
+    },
+    [onChange]
+  );
+  const onBlurInput = useCallback(
+    (editor: LexicalEditor) => {
       const text = editorStateToText(editor).replaceAll('}}{{', '}} {{');
       onBlur?.(text);
-    });
-  }, []);
+    },
+    [onBlur]
+  );
 
   return (
     <>
@@ -65,6 +70,7 @@ const PromptEditor = ({
         onBlur={onBlurInput}
         placeholder={placeholder}
         isFlow={isFlow}
+        bg={bg}
       />
       <MyModal isOpen={isOpen} onClose={onClose} iconSrc="modal/edit" title={title} w={'full'}>
         <ModalBody>

@@ -1,5 +1,5 @@
 import { Box, BoxProps, Card, Flex } from '@chakra-ui/react';
-import React, { useMemo, useTransition } from 'react';
+import React, { useMemo } from 'react';
 import ChatController, { type ChatControllerProps } from './ChatController';
 import ChatAvatar from './ChatAvatar';
 import { MessageCardStyle } from '../constants';
@@ -15,6 +15,8 @@ import { useCopyData } from '@/web/common/hooks/useCopyData';
 import MyIcon from '@fastgpt/web/components/common/Icon';
 import MyTooltip from '@fastgpt/web/components/common/MyTooltip';
 import { useTranslation } from 'next-i18next';
+import { SendPromptFnType } from '../type';
+
 const colorMap = {
   [ChatStatusEnum.loading]: {
     bg: 'myGray.100',
@@ -30,16 +32,7 @@ const colorMap = {
   }
 };
 
-const ChatItem = ({
-  type,
-  avatar,
-  statusBoxData,
-  children,
-  isLastChild,
-  questionGuides = [],
-  ...chatControllerProps
-}: {
-  type: ChatRoleEnum.Human | ChatRoleEnum.AI;
+type BasicProps = {
   avatar?: string;
   statusBoxData?: {
     status: `${ChatStatusEnum}`;
@@ -47,7 +40,28 @@ const ChatItem = ({
   };
   questionGuides?: string[];
   children?: React.ReactNode;
-} & ChatControllerProps) => {
+} & ChatControllerProps;
+
+type UserItemType = BasicProps & {
+  type: ChatRoleEnum.Human;
+  onSendMessage: undefined;
+};
+type AiItemType = BasicProps & {
+  type: ChatRoleEnum.AI;
+  onSendMessage: SendPromptFnType;
+};
+type Props = UserItemType | AiItemType;
+
+const ChatItem = ({
+  type,
+  avatar,
+  statusBoxData,
+  children,
+  isLastChild,
+  questionGuides = [],
+  onSendMessage,
+  ...chatControllerProps
+}: Props) => {
   const styleMap: BoxProps =
     type === ChatRoleEnum.Human
       ? {
@@ -73,12 +87,11 @@ const ChatItem = ({
   const ContentCard = useMemo(() => {
     if (type === 'Human') {
       const { text, files = [] } = formatChatValue2InputType(chat.value);
-
       return (
-        <>
+        <Flex flexDirection={'column'} gap={4}>
           {files.length > 0 && <FilesBlock files={files} />}
-          <Markdown source={text} />
-        </>
+          {text && <Markdown source={text} />}
+        </Flex>
       );
     }
 
@@ -97,12 +110,13 @@ const ChatItem = ({
               isLastChild={isLastChild}
               isChatting={isChatting}
               questionGuides={questionGuides}
+              onSendMessage={onSendMessage}
             />
           );
         })}
       </Flex>
     );
-  }, [chat, isChatting, isLastChild, questionGuides, type]);
+  }, [chat, isChatting, isLastChild, onSendMessage, questionGuides, type]);
 
   const chatStatusMap = useMemo(() => {
     if (!statusBoxData?.status) return;
