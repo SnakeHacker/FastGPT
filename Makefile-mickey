@@ -2,7 +2,7 @@
 build_image
 
 IMAGE_NAME = cmsrllm
-IMAGE_VERSION = 4.8.0-20240730
+IMAGE_VERSION = 4.8.0-20240902
 IMAGE_TAG = mickeyzhoudocker/${IMAGE_NAME}:${IMAGE_VERSION}
 
 filePath=./projects/app/Dockerfile
